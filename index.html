@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover">
+		<meta name="theme-color" content="#0d1022">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="description" content="당기고, 튕기고, 교대하라. 네 영웅으로 거대슬라임에 도전하는 슬링 액션.">
+		<title>리바운드: 슬라임 원정대</title>
+		<style>
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+html, body { height: 100%; overscroll-behavior: none; }
+body { color: #eef0ff; background: #0d1022; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+#canvas { display: block; }
+#canvas:focus { outline: none; }
+#status { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 22px;
+	background: radial-gradient(circle at 50% 40%, #1f2a52 0%, #0d1022 70%); visibility: hidden;
+	font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+.slime { width: 92px; height: 72px; position: relative; animation: bounce 0.9s cubic-bezier(.3,.0,.3,1) infinite; }
+.slime .body { position: absolute; inset: 0; background: radial-gradient(circle at 35% 30%, #b8ffd9 0 12%, #5ce0a0 13% 60%, #3fb57d 61%); border: 4px solid #12162a; border-radius: 50% 50% 42% 42% / 62% 62% 38% 38%; }
+.slime .eye { position: absolute; top: 34px; width: 10px; height: 13px; background: #12162a; border-radius: 50%; }
+.slime .eye.l { left: 30px; } .slime .eye.r { right: 30px; }
+.shadow { width: 80px; height: 12px; background: rgba(0,0,0,.35); border-radius: 50%; margin-top: -14px; animation: shadow 0.9s cubic-bezier(.3,.0,.3,1) infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0) scale(1.12, .88); } 45% { transform: translateY(-46px) scale(.94, 1.06); } }
+@keyframes shadow { 0%,100% { transform: scale(1); opacity: .5; } 45% { transform: scale(.6); opacity: .25; } }
+.title { font-size: 46px; font-weight: 900; color: #ffd45c; letter-spacing: 2px; text-shadow: 0 4px 0 #12162a, 0 0 18px rgba(255,212,92,.25); }
+.sub { margin-top: -14px; font-size: 18px; color: #9aa3c7; letter-spacing: 6px; }
+#bar { width: min(70vw, 340px); height: 14px; border-radius: 10px; background: #2a2f55; border: 3px solid #12162a; overflow: hidden; }
+#fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f0a43a, #ffd45c); transition: width .2s; }
+#tip { font-size: 14px; color: #9aa3c7; max-width: 80vw; text-align: center; min-height: 1.4em; }
+#status-notice { display: none; background: #5b3943; border-radius: 12px; border: 2px solid #9b3943; color: #f0e0e0; margin: 0 2rem; padding: 1rem; text-align: center; line-height: 1.4; }
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	</head>
+	<body>
+		<canvas id="canvas">이 브라우저는 canvas를 지원하지 않아요.</canvas>
+		<noscript>JavaScript를 켜야 플레이할 수 있어요.</noscript>
+		<div id="status">
+			<div class="slime"><div class="body"></div><div class="eye l"></div><div class="eye r"></div></div>
+			<div class="shadow"></div>
+			<div class="title">리바운드</div>
+			<div class="sub">슬라임 원정대</div>
+			<div id="bar"><div id="fill"></div></div>
+			<div id="tip">당겨서 쏘고, 벽과 적에 튕기며 연계하세요</div>
+			<div id="status-notice"></div>
+		</div>
+
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2489988,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const fill = document.getElementById('fill');
+	const bar = document.getElementById('bar');
+	const tip = document.getElementById('tip');
+	const statusNotice = document.getElementById('status-notice');
+	const tips = [
+		'당겨서 쏘고, 벽과 적에 튕기며 연계하세요',
+		'세게 벽에 부딪힐수록 무브가 많이 차요',
+		'적을 벽으로 밀어붙이면 벽꿍!',
+		'궁극기는 누르는 즉시 발동하고 무브를 채워요',
+		'치유 정령은 맞으면 치유가 끊겨요',
+	];
+	let tipIndex = 0;
+	const tipTimer = setInterval(() => { tipIndex = (tipIndex + 1) % tips.length; tip.textContent = tips[tipIndex]; }, 2200);
+	let initializing = true;
+
+	function hide() {
+		clearInterval(tipTimer);
+		statusOverlay.remove();
+		initializing = false;
+	}
+
+	function fail(err) {
+		console.error(err);
+		const text = (err instanceof Error) ? err.message : (typeof err === 'string' ? err : '알 수 없는 오류가 발생했어요.');
+		statusNotice.textContent = text;
+		statusNotice.style.display = 'block';
+		bar.style.display = 'none';
+		initializing = false;
+	}
+
+	statusOverlay.style.visibility = 'visible';
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length !== 0) {
+		fail('이 브라우저에서는 실행할 수 없어요. 최신 Chrome / Safari / Edge에서 열어주세요.\n(' + missing.join(', ') + ')');
+		return;
+	}
+	engine.startGame({
+		'onProgress': function (current, total) {
+			if (current > 0 && total > 0) {
+				fill.style.width = Math.min(100, (current / total) * 100) + '%';
+			}
+		},
+	}).then(hide, fail);
+}());
+		</script>
+	</body>
+</html>
+
