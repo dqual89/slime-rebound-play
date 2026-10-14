@@ -50,7 +50,7 @@ body { color: #eef0ff; background: #0d1022; overflow: hidden; touch-action: none
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2494368,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2499660,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -62,7 +62,8 @@ const engine = new Engine(GODOT_CONFIG);
 	const statusNotice = document.getElementById('status-notice');
 	const tips = [
 		'당겨서 쏘고, 벽과 적에 튕기며 연계하세요',
-		'세게 벽에 부딪힐수록 무브가 많이 차요',
+		'맞히면 무브가 바로 가득 차요',
+		'빗나가도 벽에 세게 부딪히면 무브가 차요',
 		'적을 벽으로 밀어붙이면 벽꿍!',
 		'궁극기는 누르는 즉시 발동하고 무브를 채워요',
 		'치유 정령은 맞으면 치유가 끊겨요',
